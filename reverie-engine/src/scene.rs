@@ -100,6 +100,18 @@ impl Default for TransformComponent {
 }
 
 impl TransformComponent {
+    pub fn new(
+        translation: Translation3<f32>,
+        scale: Scale3<f32>,
+        rotation: UnitQuaternion<f32>,
+    ) -> Self {
+        Self {
+            translation,
+            rotation,
+            scale,
+        }
+    }
+
     pub fn with_translation(translation: Translation3<f32>) -> Self {
         Self {
             translation,
@@ -115,14 +127,25 @@ impl TransformComponent {
         }
     }
 
-    fn to_affine3(&self) -> Affine3<f32> {
+    pub fn with_translation_and_rotation(
+        translation: Translation3<f32>,
+        rotation: UnitQuaternion<f32>,
+    ) -> Self {
+        Self {
+            translation,
+            rotation,
+            ..Default::default()
+        }
+    }
+
+    pub fn to_affine3(&self) -> Affine3<f32> {
         Affine3::from_matrix_unchecked(
             self.to_isometry3().to_homogeneous()
                 * Matrix4::new_nonuniform_scaling(&self.scale.vector),
         )
     }
 
-    fn to_isometry3(&self) -> Isometry3<f32> {
+    pub fn to_isometry3(&self) -> Isometry3<f32> {
         Isometry3::from_parts(self.translation, self.rotation)
     }
 }

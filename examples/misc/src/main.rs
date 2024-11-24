@@ -66,8 +66,8 @@ impl Game for LineDefense {
 
         for i in 0..10 {
             for j in 0..9 {
-                let x = 50.0_f32.mul_add(i as f32, 100.0);
-                let y = 50.0_f32.mul_add(j as f32, 50.0);
+                let x = 50.0_f32.mul_add(i as f32, -225.0);
+                let y = 50.0_f32.mul_add(j as f32, -200.0);
                 scene.new_entity(
                     TransformComponent::with_translation_and_scale(
                         Translation3::new(x, y, 0.0),
@@ -80,14 +80,14 @@ impl Game for LineDefense {
 
         scene.new_entity(
             TransformComponent::with_translation_and_scale(
-                Translation3::new(50.0, 50.0, 0.0),
+                Translation3::new(0.0, 0.0, 0.0),
                 Scale3::new(100.0, 100.0, 1.0),
             ),
             SpriteComponent::new(tex_cat),
         );
         let snake = scene.new_entity(
             TransformComponent::with_translation_and_scale(
-                Translation3::new(250.0, 250.0, 0.0),
+                Translation3::new(-50.0, -50.0, 0.0),
                 Scale3::new(100.0, 100.0, 1.0),
             ),
             SpriteComponent::new(tex_snake),
