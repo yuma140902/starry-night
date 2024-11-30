@@ -16,6 +16,7 @@ etagere.workspace = true
 hecs.workspace = true
 image = { workspace = true, default-features = false, features = ["png"] }
 nalgebra.workspace = true
+rand = { version = "0.8.5", features = ["small_rng"] }
 tracing-subscriber.workspace = true
 tracing-unwrap.workspace = true
 tracing.workspace = true

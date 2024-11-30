@@ -28,6 +28,7 @@ etagere = "0.2.13"
 hecs = "0.10.5"
 image = { version = "0.25.5", default-features = false }
 nalgebra = { version = "0.33.2", features = ["bytemuck"] }
+nalgebra-glm = "0.19.0"
 pollster = "0.4.0"
 slotmap = "1.0.7"
 tracing = "0.1.41"

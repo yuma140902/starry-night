@@ -45,7 +45,7 @@ impl SpriteComponent {
                 let affine = transform.to_affine3();
                 const POINTS: Matrix4<f32> = Matrix4::new(
                     -0.5, 0.5, -0.5, 0.5, //
-                    -0.5, -0.5, 0.5, 0.5, //
+                    0.5, 0.5, -0.5, -0.5, //
                     0.0, 0.0, 0.0, 0.0, //
                     1.0, 1.0, 1.0, 1.0, //
                 );

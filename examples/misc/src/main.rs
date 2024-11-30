@@ -1,4 +1,5 @@
-use nalgebra::{Scale3, Translation3, Unit, UnitQuaternion, Vector3};
+use nalgebra::{Scale3, Translation3, Unit, UnitQuaternion, UnitVector3, Vector3};
+use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reverie_engine::{
     scene::{EntityIndex, Frame, Scene, SpriteComponent, System, TransformComponent},
     wgpu_wrapper::WgpuResource,
@@ -32,30 +33,30 @@ impl Game for LineDefense {
         &mut self,
         registry: &mut reverie_engine::texture::TextureRegistry,
     ) -> anyhow::Result<Scene> {
-        let tex_apple = registry
+        let tex_uv = registry
             .new_texture(
-                image::load_from_memory(include_bytes!("../assets/apple.png"))
+                image::load_from_memory(include_bytes!("../assets/uv_tp.png"))
                     .unwrap()
                     .to_rgba8(),
                 None,
             )
             .into();
 
-        let cat_and_snake = registry.create_altas_texture(256, 512, None);
+        let apple_and_cat = registry.create_altas_texture(256, 512, None);
 
-        let tex_cat = registry
+        let tex_apple = registry
             .allocate_sub_image(
-                cat_and_snake,
-                image::load_from_memory(include_bytes!("../assets/cat.png"))
+                apple_and_cat,
+                image::load_from_memory(include_bytes!("../assets/apple.png"))
                     .unwrap()
                     .to_rgba8(),
             )
             .unwrap()
             .into();
-        let tex_snake = registry
+        let tex_cat = registry
             .allocate_sub_image(
-                cat_and_snake,
-                image::load_from_memory(include_bytes!("../assets/snake.png"))
+                apple_and_cat,
+                image::load_from_memory(include_bytes!("../assets/cat.png"))
                     .unwrap()
                     .to_rgba8(),
             )
@@ -64,74 +65,86 @@ impl Game for LineDefense {
 
         let mut scene = Scene::default();
 
+        let mut rng = SmallRng::seed_from_u64(42);
+
+        let mut characters = Vec::new();
         for i in 0..10 {
             for j in 0..9 {
-                let x = 50.0_f32.mul_add(i as f32, 100.0);
-                let y = 50.0_f32.mul_add(j as f32, 50.0);
-                scene.new_entity(
-                    TransformComponent::with_translation_and_scale(
+                let x = 0.1_f32.mul_add(i as f32, -0.4);
+                let y = 0.1_f32.mul_add(j as f32, -0.4);
+                let character = scene.new_entity(
+                    TransformComponent::new(
                         Translation3::new(x, y, 0.0),
-                        Scale3::new(30.0, 30.0, 1.0),
+                        Scale3::new(0.07, 0.07, 1.0),
+                        UnitQuaternion::from_axis_angle(
+                            &UnitVector3::new_normalize(Vector3::new(
+                                rng.gen_range(-1.0..1.0),
+                                rng.gen_range(-1.0..1.0),
+                                rng.gen_range(-1.0..1.0),
+                            )),
+                            rng.gen_range(0.0..80.0_f32).to_radians(),
+                        ),
                     ),
-                    SpriteComponent::new(tex_apple),
+                    SpriteComponent::new(if rng.gen_bool(0.5) {
+                        tex_apple
+                    } else {
+                        tex_cat
+                    }),
                 );
+                characters.push(character);
             }
         }
 
         scene.new_entity(
             TransformComponent::with_translation_and_scale(
-                Translation3::new(50.0, 50.0, 0.0),
-                Scale3::new(100.0, 100.0, 1.0),
+                Translation3::new(0.0, 0.0, 0.0),
+                Scale3::new(1.0, 1.0, 1.0),
             ),
-            SpriteComponent::new(tex_cat),
+            SpriteComponent::new(tex_uv),
         );
-        let snake = scene.new_entity(
-            TransformComponent::with_translation_and_scale(
-                Translation3::new(250.0, 250.0, 0.0),
-                Scale3::new(100.0, 100.0, 1.0),
-            ),
-            SpriteComponent::new(tex_snake),
-        );
-        scene.register_system(PlayerController::with_player(snake));
+        scene.register_system(RotateCharacters::with_characters(&characters));
 
         Ok(scene)
     }
 }
 
 #[derive(Debug)]
-struct PlayerController {
+struct RotateCharacters {
     is_moving: bool,
-    id: EntityIndex,
+    ids: Vec<EntityIndex>,
 }
 
-impl PlayerController {
-    pub const fn with_player(id: EntityIndex) -> Self {
+impl RotateCharacters {
+    pub fn with_characters(ids: &[EntityIndex]) -> Self {
         Self {
             is_moving: false,
-            id,
+            ids: Vec::from(ids),
         }
     }
 }
 
-impl System for PlayerController {
+impl System for RotateCharacters {
     fn setup(&mut self, _resource: &WgpuResource) {}
 
     fn update(&mut self, frame: &Frame, world: &mut hecs::World, _resource: &WgpuResource) {
-        if let Ok(ref mut transform) = world.get::<&mut TransformComponent>(self.id.0) {
-            if self.is_moving {
-                transform.translation.x = frame.mouse_position.x as f32;
-                transform.translation.y = frame.mouse_position.y as f32;
-                transform.rotation = UnitQuaternion::from_axis_angle(
-                    &Unit::new_normalize(Vector3::z()),
-                    -10.0 * frame.delta_time.as_secs_f32(),
-                ) * transform.rotation;
-            }
-            for (state, button, _) in frame.mouse_clicks {
-                match (state, button) {
-                    (ElementState::Pressed, MouseButton::Left) => self.is_moving = true,
-                    (ElementState::Released, MouseButton::Left) => self.is_moving = false,
-                    _ => {}
+        for e in world.iter() {
+            if self.ids.iter().any(|i| i.0 == e.entity()) {
+                if let Some(ref mut transform) = e.get::<&mut TransformComponent>() {
+                    if self.is_moving {
+                        let rot = UnitQuaternion::from_axis_angle(
+                            &Vector3::z_axis(),
+                            10.0 * frame.delta_time.as_secs_f32(),
+                        );
+                        transform.rotation *= rot;
+                    }
                 }
+            }
+        }
+        for (state, button, _) in frame.mouse_clicks {
+            match (state, button) {
+                (ElementState::Pressed, MouseButton::Left) => self.is_moving = true,
+                (ElementState::Released, MouseButton::Left) => self.is_moving = false,
+                _ => {}
             }
         }
     }

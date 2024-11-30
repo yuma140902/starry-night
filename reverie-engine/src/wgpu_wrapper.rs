@@ -2,10 +2,11 @@
 use std::{borrow::Cow, num::NonZeroU32};
 
 use anyhow::Context;
+use nalgebra::{Point3, Vector3};
 use wgpu::{self as w, util::DeviceExt};
 
 use crate::{
-    camera::{Camera, Viewport},
+    camera::{Camera, OrthographicCamera, PerspectiveCamera, Viewport},
     scene::Scene,
     texture::{TextureId, TextureRegistry},
 };
@@ -73,7 +74,19 @@ impl<'window> WgpuResource<'window> {
         tracing::trace!(?shader, "setup_shader");
 
         let viewport = Viewport { width, height };
-        let camera = Camera::Orthographic(Default::default());
+        let camera = if true {
+            PerspectiveCamera {
+                eye: Point3::new(0.0, 0.0, -0.5),
+                target: Point3::new(0.0, 0.0, 0.0),
+                up: Vector3::new(0.0, 1.0, 0.0),
+                fov_y_rad: 90.0_f32.to_radians(),
+                z_near: 0.1,
+                z_far: 100.0,
+            }
+            .into()
+        } else {
+            OrthographicCamera.into()
+        };
         let transform_uniform_buffer = setup_uniform_buffer(&device, &camera, &viewport)?;
 
         let sampler = setup_sampler(&device)?;
