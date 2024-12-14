@@ -2,7 +2,7 @@
 
 use std::num::NonZero;
 
-use nalgebra::{Matrix4, Point3, Scale3, Translation3, Vector3};
+use nalgebra::{Matrix4, Point3, Vector3};
 
 #[derive(Debug)]
 pub struct Viewport {
