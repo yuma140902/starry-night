@@ -85,7 +85,15 @@ impl<'window> WgpuResource<'window> {
             }
             .into()
         } else {
-            OrthographicCamera.into()
+            OrthographicCamera {
+                eye: Point3::new(0.0, 0.0, -0.5),
+                target: Point3::new(0.0, 0.0, 0.0),
+                up: Vector3::new(0.0, 1.0, 0.0),
+                size: 0.5,
+                z_near: 0.1,
+                z_far: 100.0,
+            }
+            .into()
         };
         let transform_uniform_buffer = setup_uniform_buffer(&device, &camera, &viewport)?;
 

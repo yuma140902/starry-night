@@ -38,14 +38,31 @@ impl From<PerspectiveCamera> for Camera {
 }
 
 #[derive(Debug, Default)]
-pub struct OrthographicCamera;
+pub struct OrthographicCamera {
+    pub eye: Point3<f32>,
+    pub target: Point3<f32>,
+    pub up: Vector3<f32>,
+    // カメラの描画範囲の高さの半分の値
+    pub size: f32,
+    pub z_near: f32,
+    pub z_far: f32,
+}
 
 impl OrthographicCamera {
     pub fn get_matrix_world_to_render_coordinate(&self, viewport: &Viewport) -> Matrix4<f32> {
-        let width = viewport.width.get() as f32;
-        let height = viewport.height.get() as f32;
-        Translation3::from([-1.0, 1.0, 0.0]).to_homogeneous()
-            * Scale3::new(2.0 / width, -2.0 / height, 1.0).to_homogeneous()
+        let view = Matrix4::look_at_lh(&self.eye, &self.target, &self.up);
+
+        let aspect_ratio = viewport.width.get() as f32 / viewport.height.get() as f32;
+        let half_height = self.size;
+        let half_width = half_height * aspect_ratio;
+        let left = -half_width;
+        let right = half_width;
+        let bottom = -half_height;
+        let top = half_height;
+
+        let proj = nalgebra_glm::ortho_lh_zo(left, right, bottom, top, self.z_near, self.z_far);
+
+        proj * view
     }
 }
 
