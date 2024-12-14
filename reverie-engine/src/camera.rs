@@ -78,22 +78,14 @@ pub struct PerspectiveCamera {
 
 impl PerspectiveCamera {
     pub fn get_matrix_world_to_render_coordinate(&self, viewport: &Viewport) -> Matrix4<f32> {
-        // OpenGL and GLM uses a different coordinate system than wgpu, so we need to convert the projection matrix
-        const OPENGL_TO_WGPU_MATRIX: Matrix4<f32> = Matrix4::new(
-            1.0, 0.0, 0.0, 0.0, //
-            0.0, 1.0, 0.0, 0.0, //
-            0.0, 0.0, 0.5, 0.5, //
-            0.0, 0.0, 0.0, 1.0, //
-        );
-
         let view = Matrix4::look_at_lh(&self.eye, &self.target, &self.up);
-        let proj = nalgebra_glm::perspective_fov_lh(
+        let proj = nalgebra_glm::perspective_fov_lh_zo(
             self.fov_y_rad,
             viewport.width.get() as f32,
             viewport.height.get() as f32,
             self.z_near,
             self.z_far,
         );
-        OPENGL_TO_WGPU_MATRIX * proj * view
+        proj * view
     }
 }
