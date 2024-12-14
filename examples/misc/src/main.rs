@@ -1,4 +1,4 @@
-use nalgebra::{Scale3, Translation3, Unit, UnitQuaternion, UnitVector3, Vector3};
+use nalgebra::{Scale3, Translation3, UnitQuaternion, UnitVector3, Vector3};
 use rand::{rngs::SmallRng, Rng, SeedableRng};
 use reverie_engine::{
     scene::{EntityIndex, Frame, Scene, SpriteComponent, System, TransformComponent},
