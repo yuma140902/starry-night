@@ -75,14 +75,14 @@ impl<'window> WgpuResource<'window> {
 
         let viewport = Viewport { width, height };
         let camera = if true {
-            PerspectiveCamera {
-                eye: Point3::new(0.0, 0.0, -0.5),
-                target: Point3::new(0.0, 0.0, 0.0),
-                up: Vector3::new(0.0, 1.0, 0.0),
-                fov_y_rad: 90.0_f32.to_radians(),
-                z_near: 0.1,
-                z_far: 100.0,
-            }
+            PerspectiveCamera::new(
+                &Point3::new(0.0, 0.0, -0.5),
+                &Point3::new(0.0, 0.0, 0.0),
+                &Vector3::new(0.0, 1.0, 0.0),
+                90.0_f32.to_radians(),
+                0.1,
+                100.0,
+            )
             .into()
         } else {
             OrthographicCamera {

@@ -2,7 +2,9 @@
 
 use std::num::NonZero;
 
-use nalgebra::{Matrix4, Point3, Vector3};
+use nalgebra::{Matrix4, Point3, Translation3, UnitQuaternion, Vector3};
+
+use crate::scene::TransformComponent;
 
 #[derive(Debug)]
 pub struct Viewport {
@@ -68,17 +70,35 @@ impl OrthographicCamera {
 
 #[derive(Debug)]
 pub struct PerspectiveCamera {
-    pub eye: Point3<f32>,
-    pub target: Point3<f32>,
-    pub up: Vector3<f32>,
+    pub transform: TransformComponent,
     pub fov_y_rad: f32,
     pub z_near: f32,
     pub z_far: f32,
 }
 
 impl PerspectiveCamera {
+    pub fn new(
+        eye: &Point3<f32>,
+        target: &Point3<f32>,
+        up: &Vector3<f32>,
+        fov_y_rad: f32,
+        z_near: f32,
+        z_far: f32,
+    ) -> Self {
+        let dir = target - eye;
+        let rotation = UnitQuaternion::look_at_lh(&dir, up);
+        let translation = &rotation * (-eye);
+        let translation = Translation3::from(translation);
+        let transform = TransformComponent::with_translation_and_rotation(translation, rotation);
+        Self {
+            transform,
+            fov_y_rad,
+            z_near,
+            z_far,
+        }
+    }
     pub fn get_matrix_world_to_render_coordinate(&self, viewport: &Viewport) -> Matrix4<f32> {
-        let view = Matrix4::look_at_lh(&self.eye, &self.target, &self.up);
+        let view = self.transform.to_isometry3().to_homogeneous();
         let proj = nalgebra_glm::perspective_fov_lh_zo(
             self.fov_y_rad,
             viewport.width.get() as f32,
