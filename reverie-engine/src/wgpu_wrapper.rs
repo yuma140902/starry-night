@@ -2,10 +2,11 @@
 use std::{borrow::Cow, num::NonZeroU32};
 
 use anyhow::Context;
-use nalgebra::{Matrix4, Scale3, Translation3};
+use nalgebra::{Point3, Vector3};
 use wgpu::{self as w, util::DeviceExt};
 
 use crate::{
+    camera::{Camera, OrthographicCamera, PerspectiveCamera, Viewport},
     scene::Scene,
     texture::{TextureId, TextureRegistry},
 };
@@ -29,6 +30,8 @@ pub struct WgpuResource<'window> {
     pub device: w::Device,
     pub queue: w::Queue,
     pub texture_registry: TextureRegistry,
+    pub camera: Camera,
+    pub viewport: Viewport,
 }
 
 impl<'window> WgpuResource<'window> {
@@ -70,7 +73,29 @@ impl<'window> WgpuResource<'window> {
         let shader = setup_shader(&device)?;
         tracing::trace!(?shader, "setup_shader");
 
-        let transform_uniform_buffer = setup_uniform_buffer(&device, width, height)?;
+        let viewport = Viewport { width, height };
+        let camera = if true {
+            PerspectiveCamera::new(
+                &Point3::new(0.0, 0.0, -0.5),
+                &Point3::new(0.0, 0.0, 0.0),
+                &Vector3::new(0.0, 1.0, 0.0),
+                90.0_f32.to_radians(),
+                0.1,
+                100.0,
+            )
+            .into()
+        } else {
+            OrthographicCamera {
+                eye: Point3::new(0.0, 0.0, -0.5),
+                target: Point3::new(0.0, 0.0, 0.0),
+                up: Vector3::new(0.0, 1.0, 0.0),
+                size: 0.5,
+                z_near: 0.1,
+                z_far: 100.0,
+            }
+            .into()
+        };
+        let transform_uniform_buffer = setup_uniform_buffer(&device, &camera, &viewport)?;
 
         let sampler = setup_sampler(&device)?;
         tracing::trace!(?sampler, "setup_sampler");
@@ -116,6 +141,8 @@ impl<'window> WgpuResource<'window> {
             device,
             queue,
             texture_registry,
+            camera,
+            viewport,
         })
     }
 
@@ -124,7 +151,11 @@ impl<'window> WgpuResource<'window> {
         self.surface_config.height = height.get();
         self.surface.configure(&self.device, &self.surface_config);
 
-        let matrix = get_matrix_pixel_to_render_coordinate(width, height);
+        self.viewport.width = width;
+        self.viewport.height = height;
+        let matrix = self
+            .camera
+            .get_matrix_world_to_render_coordinate(&self.viewport);
         self.queue.write_buffer(
             &self.transform_uniform_buffer,
             0,
@@ -270,22 +301,15 @@ fn setup_shader(device: &w::Device) -> anyhow::Result<w::ShaderModule> {
 
 fn setup_uniform_buffer(
     device: &w::Device,
-    width: NonZeroU32,
-    height: NonZeroU32,
+    camera: &Camera,
+    viewport: &Viewport,
 ) -> anyhow::Result<w::Buffer> {
-    let initial_matrix = get_matrix_pixel_to_render_coordinate(width, height);
+    let initial_matrix = camera.get_matrix_world_to_render_coordinate(viewport);
     Ok(device.create_buffer_init(&w::util::BufferInitDescriptor {
         label: Some("Pixel to Render Coordinate Matrix Buffer"),
         contents: bytemuck::cast_slice(initial_matrix.as_slice()),
         usage: w::BufferUsages::UNIFORM | w::BufferUsages::COPY_DST,
     }))
-}
-
-fn get_matrix_pixel_to_render_coordinate(width: NonZeroU32, height: NonZeroU32) -> Matrix4<f32> {
-    let width = width.get() as f32;
-    let height = height.get() as f32;
-    Translation3::from([-1.0, 1.0, 0.0]).to_homogeneous()
-        * Scale3::new(2.0 / width, -2.0 / height, 1.0).to_homogeneous()
 }
 
 fn setup_sampler(device: &w::Device) -> anyhow::Result<w::Sampler> {

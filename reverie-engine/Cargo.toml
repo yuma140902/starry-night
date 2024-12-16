@@ -17,6 +17,7 @@ etagere.workspace = true
 hecs.workspace = true
 image.workspace = true
 nalgebra.workspace = true
+nalgebra-glm.workspace = true
 pollster.workspace = true
 slotmap.workspace = true
 tracing-unwrap.workspace = true

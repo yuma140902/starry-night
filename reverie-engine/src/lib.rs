@@ -2,6 +2,7 @@
 #![deny(clippy::all)]
 #![deny(clippy::nursery)]
 
+pub mod camera;
 mod game;
 pub mod scene;
 pub mod texture;
